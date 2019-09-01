@@ -67,6 +67,7 @@ class CameraChessboardRegistration:
         vis : bool
             whether or not to visualize the registration
         """
+        import rospy
         # read config
         num_transform_avg = config['num_transform_avg']
         num_images = config['num_images']
@@ -82,7 +83,7 @@ class CameraChessboardRegistration:
         vis = config['vis']
 
         # read params from sensor
-        logging.info('Registering camera %s' %(sensor.frame))
+        rospy.loginfo('Registering camera %s' %(sensor.frame))
         ir_intrinsics = sensor.ir_intrinsics
 
         # repeat registration multiple times and average results
@@ -97,8 +98,11 @@ class CameraChessboardRegistration:
             for i in range(num_images):
                 start = time.time()
                 small_color_im, new_depth_im, _ = sensor.frames()
+                # import matplotlib.pyplot as plt
+                # plt.imshow(small_color_im._data)
+                # plt.show()
                 end = time.time()
-                logging.info('Frames Runtime: %.3f' %(end-start))
+                rospy.loginfo('Frames Runtime: %.3f' %(end-start))
                 if depth_ims is None:
                     depth_ims = np.zeros([new_depth_im.height,
                                           new_depth_im.width,
@@ -110,7 +114,9 @@ class CameraChessboardRegistration:
 
             # find the corner pixels in an upsampled version of the color image
             big_color_im = small_color_im.resize(color_image_rescale_factor)
+            # big_color_im._data *= 255
             corner_px = big_color_im.find_chessboard(sx=sx, sy=sy)
+            # import rospy; rospy.loginfo(corner_px)
 
             if vis:
                 plt.figure()
@@ -120,7 +126,8 @@ class CameraChessboardRegistration:
                 plt.show()
 
             if corner_px is None:
-                logging.error('No chessboard detected! Check camera exposure settings')
+                rospy.loginfo('No chessboard detected! Check camera exposure settings')
+                rospy.logerr('No chessboard detected! Check camera exposure settings')
                 continue
 
             # convert back to original image
@@ -142,12 +149,12 @@ class CameraChessboardRegistration:
             corner_px_round = np.round(small_corner_px).astype(np.uint16)
             corner_ind = depth_im.ij_to_linear(corner_px_round[:,0], corner_px_round[:,1])
             if corner_ind.shape[0] != sx*sy:
-                logging.warning('Did not find all corners. Discarding...')
+                rospy.logerr('Did not find all corners. Discarding...')
                 continue
 
             # average 3d points
             points_3d_plane = (k * points_3d_plane + points_3d[corner_ind]) / (k + 1)
-            logging.info('Registration iteration %d of %d' %(k+1, config['num_transform_avg']))
+            rospy.loginfo('Registration iteration %d of %d' %(k+1, config['num_transform_avg']))
             k += 1
 
         # fit a plane to the chessboard corners

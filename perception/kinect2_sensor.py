@@ -356,9 +356,13 @@ class KinectSensorBridged(CameraSensor):
         # set member vars
         self._frame = frame
 
-        self.topic_image_color = '/kinect2/%s/image_color_rect' %(quality)
-        self.topic_image_depth = '/kinect2/%s/image_depth_rect' %(quality)
-        self.topic_info_camera = '/kinect2/%s/camera_info' %(quality)
+        # self.topic_image_color = '/kinect2/%s/image_color_rect' %(quality)
+        # self.topic_image_depth = '/kinect2/%s/image_depth_rect' %(quality)
+        # self.topic_info_camera = '/kinect2/%s/camera_info' %(quality)
+
+        self.topic_image_color = '/rgb/image_raw'
+        self.topic_image_depth = '/depth_to_rgb/image_raw'
+        self.topic_info_camera = '/rgb/camera_info'
         
         self._initialized = False
         self._format = None
@@ -408,6 +412,10 @@ class KinectSensorBridged(CameraSensor):
         """ subscribe to image topic and keep it up to date
         """
         color_arr = self._process_image_msg(image_msg)
+        color_arr = cv2.cvtColor(color_arr, cv2.COLOR_RGBA2RGB)
+        # import matplotlib.pyplot as plt
+        # plt.imshow(color_arr[:, :, ::-1])
+        # plt.show()
         self._cur_color_im = ColorImage(color_arr[:,:,::-1], self._frame)
  
     def _depth_image_callback(self, image_msg):
@@ -416,11 +424,11 @@ class KinectSensorBridged(CameraSensor):
         encoding = image_msg.encoding
         try:
             depth_arr = self._bridge.imgmsg_to_cv2(image_msg, encoding)
-            import pdb; pdb.set_trace()
 
         except CvBridgeError as e:
             rospy.logerr(e)
-        depth = np.array(depth_arr*MM_TO_METERS, np.float32)
+        # depth = np.array(depth_arr*MM_TO_METERS, np.float32)
+        depth = np.array(depth_arr, np.float32)
         self._cur_depth_im = DepthImage(depth, self._frame)
 
     def _camera_info_callback(self, msg):
@@ -446,6 +454,12 @@ class KinectSensorBridged(CameraSensor):
         """
         return self._frame
 
+    @property
+    def ir_frame(self):
+        """:obj:`str` : The reference frame of the sensor.
+        """
+        return self._frame
+
     def start(self):
         """ Start the sensor """
         # initialize subscribers
@@ -459,6 +473,7 @@ class KinectSensorBridged(CameraSensor):
             rospy.wait_for_message(self.topic_image_color, sensor_msgs.msg.Image, timeout=timeout)
             rospy.wait_for_message(self.topic_image_depth, sensor_msgs.msg.Image, timeout=timeout)
             rospy.wait_for_message(self.topic_info_camera, sensor_msgs.msg.CameraInfo, timeout=timeout)
+            rospy.loginfo("Done")
         except rospy.ROSException as e:
             print("KINECT NOT FOUND")
             rospy.logerr("Kinect topic not found, Kinect not started")

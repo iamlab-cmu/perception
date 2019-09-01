@@ -27,6 +27,7 @@ import scipy.spatial.distance as ssd
 import skimage.morphology as morph
 import skimage.transform as skt
 import scipy.ndimage.morphology as snm
+from skimage import img_as_ubyte
 
 from autolab_core import PointCloud, NormalCloud, PointNormalCloud, Box, Contour
 from .constants import *
@@ -1129,7 +1130,8 @@ class ColorImage(Image):
         :obj:`ColorImage`
             The resized image.
         """
-        resized_data = imresize(self.data, size, interp=interp).astype(np.uint8)
+        # resized_data = imresize(self.data, size, interp=interp).astype(np.uint8)
+        resized_data = img_as_ubyte(imresize(self.data, size, interp=interp))
         return ColorImage(resized_data, self._frame)
 
     def find_chessboard(self, sx=6, sy=9):
