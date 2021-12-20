@@ -427,8 +427,8 @@ class KinectSensorBridged(CameraSensor):
 
         except CvBridgeError as e:
             rospy.logerr(e)
-        # depth = np.array(depth_arr*MM_TO_METERS, np.float32)
-        depth = np.array(depth_arr, np.float32)
+        depth = np.array(depth_arr*MM_TO_METERS, np.float32)
+        # depth = np.array(depth_arr, np.float32)
         self._cur_depth_im = DepthImage(depth, self._frame)
 
     def _camera_info_callback(self, msg):
